@@ -14,7 +14,7 @@ def main():
  if a.max_cues: cues=cues[:a.max_cues]
  refs=Path(a.refs).resolve(); chunks=Path(a.chunks).resolve(); chunks.mkdir(parents=True,exist_ok=True)
  duration=float(run(['ffprobe','-v','error','-show_entries','format=duration','-of','default=nw=1:nk=1',str(audio)]).strip())
- proc=subprocess.Popen([a.python,a.worker],stdin=subprocess.PIPE,stdout=subprocess.PIPE,text=True)
+ proc=subprocess.Popen([a.python,a.worker],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,text=True)
  concat=[]; total=0
  try:
   for i,c in enumerate(cues):
@@ -29,7 +29,11 @@ def main():
      if f==0: Image.open(ref(state)).convert('RGB').save(target)
      elif state==nxt and f==frames-1: Image.open(ref(state)).convert('RGB').save(target)
      else:
-      q={'frame1':str(ref(state)),'frame2':str(ref(nxt)),'time':t}; proc.stdin.write(json.dumps(q)+'\n'); proc.stdin.flush(); d=json.loads(proc.stdout.readline());
+      q={'frame1':str(ref(state)),'frame2':str(ref(nxt)),'time':t}; proc.stdin.write(json.dumps(q)+'\n'); proc.stdin.flush(); line=proc.stdout.readline();
+      if not line:
+       code=proc.poll(); raise RuntimeError(f'FILM worker returned no response at chunk {i} frame {f}; exit={code}')
+      try: d=json.loads(line)
+      except json.JSONDecodeError as e: raise RuntimeError(f'FILM worker returned invalid JSON at chunk {i} frame {f}: {line[:200]!r}') from e
       if not d.get('ok'): raise RuntimeError(d)
       target.write_bytes(base64.b64decode(d['png_base64']))
     paths.append(target); total+=1
