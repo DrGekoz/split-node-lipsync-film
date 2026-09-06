@@ -1,0 +1,7 @@
+node_modules/
+.venv/
+.cache/
+*.wav
+*.mp4
+.env
+credentials/

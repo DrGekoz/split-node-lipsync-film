@@ -1,0 +1,9 @@
+# Install into the existing CUDA-capable Python environment.
+# Recommended: ComfyUI portable Python on Windows.
+Pillow
+numpy
+opencv-python
+panphon==0.20.0
+# Allosaurus is installed without dependency resolution because its legacy
+# editdistance/unicodecsv requirements do not support modern embedded Python.
+allosaurus==1.0.2
