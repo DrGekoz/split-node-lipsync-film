@@ -45,7 +45,11 @@ def main():
   try: proc.wait(timeout=10)
   except subprocess.TimeoutExpired: proc.kill()
  manifest=chunks/'manifest.json'; manifest.write_text(json.dumps({'fps':FPS,'audio':str(audio),'cue_count':len(cues),'chunks':[str(x) for x in concat],'frames':total},indent=2),encoding='utf-8')
- allframes=chunks/'all_frames.txt'; allframes.write_text('\n'.join("file '"+str(p).replace('\\','/')+"'" for lf in concat for p in [Path(x.strip().split("'",2)[1]) for x in lf.read_text().splitlines()]),encoding='utf-8')
+ frames=[Path(x.strip().split("'",2)[1]) for lf in concat for x in lf.read_text().splitlines()]
+ lines=[]
+ for p in frames: lines += ["file '"+str(p).replace('\\','/')+"'",f'duration {1/FPS:.9f}']
+ lines += ["file '"+str(frames[-1]).replace('\\','/')+"'"]
+ allframes.write_text('\n'.join(lines),encoding='utf-8')
  out=Path(a.out).resolve(); temp=out.with_suffix('.tmp.mp4')
  run(['ffmpeg','-y','-f','concat','-safe','0','-i',str(allframes),'-r',str(FPS),'-c:v','libx264','-pix_fmt','yuv420p',str(temp)])
  run(['ffmpeg','-y','-i',str(temp),'-i',str(audio),'-map','0:v:0','-map','1:a:0','-c:v','copy','-c:a','aac','-shortest',str(out)])
