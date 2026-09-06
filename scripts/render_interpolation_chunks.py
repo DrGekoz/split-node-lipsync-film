@@ -9,8 +9,10 @@ def run(cmd):
  return r.stdout
 
 def main():
- ap=argparse.ArgumentParser(); ap.add_argument('--audio',required=True); ap.add_argument('--cues',required=True); ap.add_argument('--refs',required=True); ap.add_argument('--worker',required=True); ap.add_argument('--python',default=sys.executable); ap.add_argument('--out',required=True); ap.add_argument('--chunks',default='interpolation chunks'); a=ap.parse_args()
- audio=Path(a.audio).resolve(); cues=json.loads(Path(a.cues).read_text(encoding='utf-8'))['mouthCues']; refs=Path(a.refs).resolve(); chunks=Path(a.chunks).resolve(); chunks.mkdir(parents=True,exist_ok=True)
+ ap=argparse.ArgumentParser(); ap.add_argument('--audio',required=True); ap.add_argument('--cues',required=True); ap.add_argument('--refs',required=True); ap.add_argument('--worker',required=True); ap.add_argument('--python',default=sys.executable); ap.add_argument('--out',required=True); ap.add_argument('--chunks',default='interpolation chunks'); ap.add_argument('--max-cues',type=int,default=0); a=ap.parse_args()
+ audio=Path(a.audio).resolve(); cues=json.loads(Path(a.cues).read_text(encoding='utf-8'))['mouthCues'];
+ if a.max_cues: cues=cues[:a.max_cues]
+ refs=Path(a.refs).resolve(); chunks=Path(a.chunks).resolve(); chunks.mkdir(parents=True,exist_ok=True)
  duration=float(run(['ffprobe','-v','error','-show_entries','format=duration','-of','default=nw=1:nk=1',str(audio)]).strip())
  proc=subprocess.Popen([a.python,a.worker],stdin=subprocess.PIPE,stdout=subprocess.PIPE,text=True)
  concat=[]; total=0

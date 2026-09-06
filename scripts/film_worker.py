@@ -4,7 +4,7 @@ import torch
 from PIL import Image
 import numpy as np
 
-MODEL = Path(__file__).parent / 'models' / 'film_net_fp16.pt'
+MODEL = Path(__file__).resolve().parents[1] / 'models' / 'film_net_fp16.pt'
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 MODEL_OBJ = torch.jit.load(str(MODEL), map_location='cpu').eval().half().to(DEVICE)
 

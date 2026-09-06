@@ -177,17 +177,44 @@ The Remotion project is in `remotion/`. It is 2560x1440 at 24 fps. The productio
 
 The quote card is left-anchored. Film grain must be applied after the FILM-generated image is selected, never before interpolation.
 
+## Transition cache and 12 fps mode
+
+The cached production renderer runs at 12 fps with the original audio playing at realtime speed. This intentionally gives the visual output a slightly choppy style while preserving speech timing.
+
+Build the shared cache once:
+
+```bat
+python scripts/build_interpolation_cache.py --refs path\\to\\mouth-refs --worker scripts\\film_worker.py --python F:\\ComfyUI_windows_portable\\python_embeded\\python.exe --cache cache\\interpolation
+```
+
+The cache contains every ordered transition between the 20 mouth states, excluding self-transitions:
+
+```text
+20 source states x 19 target states x 3 positions = 1,140 frames
+positions: 0.25, 0.50, 0.75
+```
+
+Existing valid cache frames are reused. The renderer invokes FILM only for a missing transition or a timing position not represented by the three cached positions. Each episode has its own resumable `interpolation chunks` folder.
+
+Render the final 12 fps video:
+
+```bat
+python scripts\\render_cached_lipsync_12fps.py --audio narration.wav --cues allosaurus_mouth_cues.json --refs path\\to\\mouth-refs --worker scripts\\film_worker.py --python F:\\ComfyUI_windows_portable\\python_embeded\\python.exe --cache cache\\interpolation --chunks "episode\\interpolation chunks" --out episode.mp4
+```
+
+The final video is 12 fps; audio remains realtime and is muxed from the original TTS WAV. The agent must report cache hits, FILM fallbacks, total frames, final fps, and final audio/video durations.
+
 A complete production runner should:
 
 1. Run hardened preflight.
 2. Load the locked cue manifest.
 3. Build an ordered timeline from cue intervals.
 4. Hold a mouth image while its state remains unchanged.
-5. Request one FILM frame only at a state transition when the transition is worth interpolating.
-6. Reuse an identical transition from the deterministic cache.
-7. Keep hard cuts, long holds, and unchanged states free of unnecessary FILM calls.
-8. Render Remotion at exactly 24 fps.
-9. Apply the animated seeded grain overlay after interpolation.
+5. Select a cached transition frame where available.
+6. Request FILM only when the cache cannot provide the required transition position.
+7. Store episode frames under `interpolation chunks` and reuse valid files on resume.
+8. Render at exactly 12 fps for this choppy visual mode.
+9. Apply grain after interpolation.
 10. Preserve and mux the original audio.
 11. Probe the final file and fail if any required stream or timing property is wrong.
 
